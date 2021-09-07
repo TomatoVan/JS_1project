@@ -98,7 +98,6 @@ window.addEventListener('DOMContentLoaded', function() {
     // Modal
 
     const modalTrigger = document.querySelectorAll('[data-modal]'),
-            modalClose =  document.querySelector('[data-close]'),
             modal = document.querySelector('.modal');
 
     function openModal() {
@@ -116,10 +115,9 @@ window.addEventListener('DOMContentLoaded', function() {
         btn.addEventListener('click', openModal);        
     });
 
-    modalClose.addEventListener('click', closeModal);
 
     modal.addEventListener('click', (e) => {
-        if (e.target === modal) {
+        if (e.target === modal || e.target.getAttribute('data-close') == '') {
             closeModal();
         }
     });
@@ -130,12 +128,14 @@ window.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // const modalTimerId = setTimeout(openModal, 7000);
+    const modalTimerId = setTimeout(openModal, 50000);
 
     function showModalByScroll() {
-        if (window.pageYOffset + document.documentElement.clientHeight >= document.documentElement.scrollHeight) {
+        // let Cycle = true;
+        if (window.pageYOffset + document.documentElement.clientHeight >= document.documentElement.scrollHeight) /* && /* Cycle */{
             openModal();    
             window.removeEventListener('scroll', showModalByScroll);
+            // Cycle = false;
         }
     }
 
@@ -151,7 +151,7 @@ window.addEventListener('DOMContentLoaded', function() {
             this.descr = descr;
             this.price = price;
             this.classes = classes;
-            this.parent =document.querySelector( parentSelector);
+            this.parent =document.querySelector(parentSelector);
             this.transfer = 27;
             this.changeToUAH();
         }
@@ -215,4 +215,83 @@ window.addEventListener('DOMContentLoaded', function() {
         'menu__item',
         'big'
     ).render();
+
+    // Forms 
+
+    const forms = document.querySelectorAll('form');
+
+        const message = {
+            loading: 'img/form/spinner.svg',
+            success: 'Спасибо, скоро мы с вами свяжемся',
+            failure: 'Что-то пошло не так'
+        };
+
+        forms.forEach(item => {
+            postData(item);
+        });
+
+    function postData(form) {
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+
+            const statusMessage = document.createElement('img');
+            statusMessage.src = message.loading;
+            statusMessage.style.cssText = `
+                display:block;
+                margin: 0 auto;
+            `;
+            form.insertAdjacentElement('afterend', statusMessage);
+            
+            const formData = new FormData(form);
+
+            const object = {};
+            formData.forEach(function(value, key) {
+                object[key] = value;
+            });
+
+            fetch('server.php', {
+                method: "POST",
+                headers: {
+                    'Content-type': 'application/json'
+                },
+                body: JSON.stringify(object)
+            })
+            .then(data => data.text())
+            .then(data => {
+                console.log(data);
+                showThanksModal(message.success); 
+                form.reset();
+                statusMessage.remove();
+            })
+            .catch(() => {
+                showThanksModal(message.failure);
+            }).finally(() => {
+                form.reset();
+            });
+        });
+    }
+
+    function showThanksModal(message) {
+        const prevModalDialog = document.querySelector('.modal__dialog');
+
+        prevModalDialog.style.display = 'none';
+        openModal();
+
+        const thanksModal = document.createElement('div');
+        thanksModal.classList.add('modal__dialog');
+        thanksModal.innerHTML = `
+            <div class="modal__content">
+                <div class="modal__close" data-close>×</div>
+                <div class="modal__title">${message}</div>
+            </div>
+        `;
+        
+        document.querySelector('.modal').append(thanksModal);
+        setTimeout(() => {
+            thanksModal.remove();
+            prevModalDialog.style.display = 'block';
+            closeModal();
+        }, 4000);
+    }
+
 });
